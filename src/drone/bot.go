@@ -22,10 +22,18 @@ func StartDrone(ctx context.Context, cfg Config) error {
 		return err
 	}
 
-	db, err := badger.Open(badger.DefaultOptions(cfg.BadgerPath))
+	dbOpts := badger.DefaultOptions(cfg.BadgerPath).
+		// https://github.com/dgraph-io/badger/issues/1297#issuecomment-612941482
+		WithValueLogFileSize(1024 * 1024 * 16).
+		WithNumVersionsToKeep(1).
+		WithCompactL0OnClose(true).
+		WithNumLevelZeroTables(1).
+		WithNumLevelZeroTablesStall(2)
+	db, err := badger.Open(dbOpts)
 	if err != nil {
 		return fmt.Errorf("db open: %w", err)
 	}
+	defer db.Close()
 
 	dr := drone{
 		bot: bot,
